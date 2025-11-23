@@ -3,9 +3,9 @@ package br.edu.icev.translog.view;
 import br.edu.icev.translog.model.*;
 import br.edu.icev.translog.service.*;
 import br.edu.icev.translog.persistencia.*;
+import br.edu.icev.translog.util.Validador; 
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -13,235 +13,190 @@ public class MenuConsole {
 
     private Scanner scanner;
     
-    //servicos
+    // Serviços
     private CalculadoraFrete calculadora;
     private Agendamento agendamentoService;
     private NotaFiscal nfService;
     
-    //dados
+    // Repositórios
     private EntregaRepository entregaRepo;
     private ClienteRepository clienteRepo;
     private MotoristaRepository motoristaRepo;
 
-    
+    // Listas em Memória
     private List<Cliente> clientesCadastrados;
     private List<Motorista> motoristasCadastrados;
 
     public MenuConsole() {
         this.scanner = new Scanner(System.in);
         
-        //iniciando sistemas
-        this.calculadora = new CalculadoraFrete();
-        this.agendamentoService = new Agendamento();
-        this.nfService = new NotaFiscal();
-        
-        
+        // Inicializa Repositórios
         this.entregaRepo = new EntregaRepository();
         this.clienteRepo = new ClienteRepository();
         this.motoristaRepo = new MotoristaRepository();
         
-        this.clientesCadastrados = new ArrayList<>();
-        this.motoristasCadastrados = new ArrayList<>();
+        // CARREGA DADOS DO DISCO (Igual à Janela Principal)
+        this.clientesCadastrados = clienteRepo.carregar();
+        this.motoristasCadastrados = motoristaRepo.carregar();
         
-        //**dados de TESTE */
-        preCarregarDados();
+        // Inicializa Serviços
+        this.calculadora = new CalculadoraFrete();
+        this.agendamentoService = new Agendamento();
+        this.nfService = new NotaFiscal();
+        
+        // Recupera histórico de entregas
+        List<Entrega> historico = entregaRepo.carregar(clientesCadastrados, motoristasCadastrados);
+        for(Entrega e : historico) {
+            try { agendamentoService.listarEntregas().add(e); } catch(Exception ex){}
+        }
     }
 
     public void iniciar() {
         int opcao = -1;
         while (opcao != 0) {
-            System.out.println("\n=== SISTEMA TRANSLOG (Logística & Entregas) ===");
+            System.out.println("\n=== SISTEMA TRANSLOG (MODO CONSOLE) ===");
             System.out.println("1. Cadastrar Cliente");
             System.out.println("2. Cadastrar Motorista");
-            System.out.println("3. Nova Entrega (Cotação, Agendamento e NF)");
-            System.out.println("4. Listar Entregas Agendadas");
-            System.out.println("5. Salvar Tudo e Sair");
-            System.out.print("Escolha uma opção: ");
+            System.out.println("3. Nova Entrega");
+            System.out.println("4. Listar Entregas");
+            System.out.println("5. Salvar e Sair");
+            System.out.print("Escolha: ");
             
             try {
                 String input = scanner.nextLine();
-                if (!input.trim().isEmpty()) {
-                    opcao = Integer.parseInt(input);
-                }
-            } catch (NumberFormatException e) {
-                opcao = -1;
-            }
+                if (!input.trim().isEmpty()) opcao = Integer.parseInt(input);
+            } catch (NumberFormatException e) { opcao = -1; }
 
             switch (opcao) {
                 case 1: cadastrarCliente(); break;
                 case 2: cadastrarMotorista(); break;
                 case 3: realizarEntrega(); break;
                 case 4: listarEntregas(); break;
-                case 5: 
-                    salvarTudo();
-                    return; //sai do programa
-                default: System.out.println("Opção inválida! Tente novamente.");
+                case 5: salvarTudo(); return;
+                default: System.out.println("Opção inválida!");
             }
         }
     }
 
-    
     private void salvarTudo() {
-        System.out.println("\n--- Salvando Dados no Disco ---");
-        
-        
+        System.out.println("Salvando dados...");
         entregaRepo.salvarTudo(agendamentoService.listarEntregas());
-        
         clienteRepo.salvar(clientesCadastrados);
-        System.out.println(">> Cadastro de clientes salvo em 'banco_clientes.csv'");
-        
         motoristaRepo.salvar(motoristasCadastrados);
-        System.out.println(">> Cadastro de motoristas salvo em 'banco_motoristas.csv'");
-        
-        System.out.println("Dados salvos com sucesso. Encerrando o sistema.");
+        System.out.println("Tudo salvo! Encerrando.");
     }
 
-    //cadastros
     private void cadastrarCliente() {
         System.out.println("\n--- Novo Cliente ---");
-        System.out.println("Tipo de Contrato:");
-        System.out.println("1 - Empresarial (10% desconto)");
-        System.out.println("2 - Prioritário (20% desconto)");
-        System.out.print("Opção: ");
+        System.out.println("1-Empresarial | 2-Prioritário");
         int tipo = Integer.parseInt(scanner.nextLine());
-
-        System.out.print("Nome: ");
+        
+        System.out.print("Nome: "); 
         String nome = scanner.nextLine();
-        System.out.print("CPF/CNPJ: ");
+        
+        System.out.print("Documento (CPF/CNPJ): "); 
         String doc = scanner.nextLine();
-        System.out.print("Telefone: ");
+        
+        // VALIDAÇÃO NO CONSOLE
+        if (tipo == 1 && !Validador.isCNPJ(doc)) {
+            System.out.println("ERRO: CNPJ Inválido!"); return;
+        }
+        if (tipo == 2 && !Validador.isCPF(doc)) {
+            System.out.println("ERRO: CPF Inválido!"); return;
+        }
+
+        System.out.print("Tel: "); 
         String tel = scanner.nextLine();
 
-        Cliente novo;
-        if (tipo == 1) {
-            novo = new ClienteEmpresarial(nome, doc, tel);
-        } else {
-            novo = new ClientePrioritario(nome, doc, tel);
-        }
-        clientesCadastrados.add(novo);
-        System.out.println("Cliente cadastrado com sucesso!");
+        Cliente c = (tipo == 1) ? new ClienteEmpresarial(nome, doc, tel) 
+                                : new ClientePrioritario(nome, doc, tel);
+        clientesCadastrados.add(c);
+        System.out.println("Cliente salvo!");
     }
 
     private void cadastrarMotorista() {
-        System.out.println("\n--- Novo Motorista ---");
-        System.out.print("Nome: ");
-        String nome = scanner.nextLine();
-        System.out.print("CNH: ");
-        String cnh = scanner.nextLine();
+        System.out.print("Nome: "); String nome = scanner.nextLine();
+        System.out.print("CNH: "); String cnh = scanner.nextLine();
+        
+        if (!Validador.isCNH(cnh)) {
+            System.out.println("ERRO: CNH Inválida (deve ter 11 dígitos)!"); return;
+        }
         
         motoristasCadastrados.add(new Motorista(nome, cnh));
-        System.out.println("Motorista cadastrado com sucesso!");
+        System.out.println("Motorista salvo!");
     }
 
-    //cadastro de entrega
     private void realizarEntrega() {
         if (clientesCadastrados.isEmpty() || motoristasCadastrados.isEmpty()) {
-            System.out.println("ERRO: É necessário cadastrar Clientes e Motoristas antes.");
+            System.out.println("ERRO: Cadastre pessoas antes.");
             return;
         }
-
-        System.out.println("\n--- Nova Solicitação de Entrega ---");
         
-        Cliente cliente = selecionarCliente();
-        if (cliente == null) return;
+        // Seleção simplificada
+        for(int i=0; i<clientesCadastrados.size(); i++) 
+            System.out.println(i + " - " + clientesCadastrados.get(i).getNome());
+        System.out.print("Index Cliente: ");
+        int idxCli = Integer.parseInt(scanner.nextLine());
+        
+        for(int i=0; i<motoristasCadastrados.size(); i++) 
+            System.out.println(i + " - " + motoristasCadastrados.get(i).getNome());
+        System.out.print("Index Motorista: ");
+        int idxMot = Integer.parseInt(scanner.nextLine());
 
-        Motorista motorista = selecionarMotorista();
-        if (motorista == null) return;
+        Cliente cli = clientesCadastrados.get(idxCli);
+        Motorista mot = motoristasCadastrados.get(idxMot);
 
-        System.out.print("Peso da carga (kg): ");
+        System.out.print("Peso (kg): "); 
         double peso = Double.parseDouble(scanner.nextLine());
         
-        System.out.print("Distância total (km): ");
-        double distancia = Double.parseDouble(scanner.nextLine());
+        System.out.print("Distância (km): "); 
+        double dist = Double.parseDouble(scanner.nextLine());
         
-        System.out.println("Classificação da Carga:");
-        System.out.println("1 - LEVE (Fator x1.0)");
-        System.out.println("2 - MEDIA (Fator x1.5)");
-        System.out.println("3 - PESADA (Fator x2.0)");
-        System.out.print("Opção: ");
-        int tIdx = Integer.parseInt(scanner.nextLine());
-        TipoCarga tipo = (tIdx == 1) ? TipoCarga.LEVE : (tIdx == 2) ? TipoCarga.MEDIA : TipoCarga.PESADA;
-
-        System.out.print("A carga é Frágil ou Perigosa? (S/N): ");
-        boolean perigosa = scanner.nextLine().trim().equalsIgnoreCase("S");
-
-        Carga carga = new Carga(peso, tipo, perigosa);
-
-        //definindo horario
-        System.out.print("Agendar para daqui a quantas horas? ");
-        int horas = Integer.parseInt(scanner.nextLine());
-        LocalDateTime data = LocalDateTime.now().plusHours(horas);
-
-        //chama o calculo
-        double valor = calculadora.calcular(cliente, carga, distancia);
+        // Classificação Automática (Lógica do Swing trazida pra cá)
+        TipoCarga tipo;
+        if (peso <= 10) tipo = TipoCarga.LEVE;
+        else if (peso <= 100) tipo = TipoCarga.MEDIA;
+        else tipo = TipoCarga.PESADA;
+        System.out.println(">> Classificação Automática: " + tipo);
         
-        System.out.println("\n--- ORÇAMENTO ---");
-        System.out.printf("Valor Calculado: R$ %.2f\n", valor);
-        if (perigosa) System.out.println("AVISO: Adicional de carga especial aplicado.");
+        System.out.print("Carga Especial (S/N)? ");
+        boolean especial = scanner.nextLine().equalsIgnoreCase("S");
+
+        Carga carga = new Carga(peso, tipo, especial);
+
+        double valor = calculadora.calcular(cli, carga, dist);
+        System.out.printf(">>> Valor Frete: R$ %.2f\n", valor);
         
-        System.out.print("Confirmar Agendamento? (S/N): ");
-        if (scanner.nextLine().trim().equalsIgnoreCase("S")) {
-            Entrega entrega = new Entrega(cliente, motorista, carga, data);
-            entrega.setValorFrete(valor);
+        System.out.print("Confirmar (S/N)? ");
+        if (scanner.nextLine().equalsIgnoreCase("S")) {
+            System.out.print("Agendar para daqui a quantas horas? ");
+            int h = Integer.parseInt(scanner.nextLine());
+            
+
+            Entrega e = new Entrega(cli, mot, carga, LocalDateTime.now().plusHours(h), dist);
+            e.setValorFrete(valor);
             
             try {
-                //valida bloqueios e agenda
-                agendamentoService.agendarEntrega(entrega);
-                
-                //gera nota
-                nfService.emitirNotaFiscal(entrega);
-                
-                System.out.println(">> Operação finalizada com sucesso!");
-            } catch (Exception e) {
-                System.out.println("ERRO NO AGENDAMENTO: " + e.getMessage());
+                agendamentoService.agendarEntrega(e);
+                nfService.emitirNotaFiscal(e);
+                System.out.println("Sucesso!");
+            } catch (Exception ex) {
+                System.out.println("ERRO: " + ex.getMessage());
             }
-        } else {
-            System.out.println("Operação cancelada.");
         }
     }
 
     private void listarEntregas() {
-        System.out.println("\n--- Agenda de Entregas ---");
         List<Entrega> lista = agendamentoService.listarEntregas();
-        if (lista.isEmpty()) {
-            System.out.println("Nenhuma entrega agendada no momento.");
-        } else {
-            for (Entrega e : lista) {
-                System.out.println(e);
-            }
-        }
-    }
-
-    //metodos auxiliares
-    private Cliente selecionarCliente() {
-        System.out.println("Selecione o Cliente:");
-        for (int i = 0; i < clientesCadastrados.size(); i++) {
-            System.out.println(i + " - " + clientesCadastrados.get(i).getNome());
-        }
-        System.out.print("Código: ");
-        int idx = Integer.parseInt(scanner.nextLine());
-        if (idx >= 0 && idx < clientesCadastrados.size()) return clientesCadastrados.get(idx);
-        System.out.println("Cliente inválido.");
-        return null;
-    }
-
-    private Motorista selecionarMotorista() {
-        System.out.println("Selecione o Motorista:");
-        for (int i = 0; i < motoristasCadastrados.size(); i++) {
-            System.out.println(i + " - " + motoristasCadastrados.get(i).getNome());
-        }
-        System.out.print("Código: ");
-        int idx = Integer.parseInt(scanner.nextLine());
-        if (idx >= 0 && idx < motoristasCadastrados.size()) return motoristasCadastrados.get(idx);
-        System.out.println("Motorista inválido.");
-        return null;
+        if (lista.isEmpty()) System.out.println("Vazio.");
+        else for (Entrega e : lista) System.out.println(e);
     }
     
     private void preCarregarDados() {
-        //dados templates
-        clientesCadastrados.add(new ClienteEmpresarial("Tech Solutions", "12345678000199", "8699999999"));
-        clientesCadastrados.add(new ClientePrioritario("Fast Delivery", "98765432000188", "8688888888"));
-        motoristasCadastrados.add(new Motorista("João da Silva", "CNH12345"));
-        motoristasCadastrados.add(new Motorista("Maria Oliveira", "CNH67890"));
+        // Se não carregou nada do arquivo, cria um dummy
+        if(clientesCadastrados.isEmpty())
+            clientesCadastrados.add(new ClienteEmpresarial("Loja Teste", "0001", "9999"));
+        if(motoristasCadastrados.isEmpty())
+            motoristasCadastrados.add(new Motorista("João Piloto", "12345678901"));
     }
 }

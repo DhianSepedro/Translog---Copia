@@ -8,13 +8,18 @@ public class Entrega {
     private Carga carga;
     private LocalDateTime dataHorario;
     private double valorFrete;
+    
+    //distancia em km para bloquear no agendamento
+    private double distanciaKm;
 
-    public Entrega(Cliente cliente, Motorista motorista, Carga carga, LocalDateTime dataHorario) {
+    public Entrega(Cliente cliente, Motorista motorista, Carga carga, LocalDateTime dataHorario, double distanciaKm) {
         this.cliente = cliente;
         this.motorista = motorista;
         this.carga = carga;
         this.dataHorario = dataHorario;
+        this.distanciaKm = distanciaKm;
     }
+
 
     public void setValorFrete(double valorFrete) {
         this.valorFrete = valorFrete;
@@ -28,23 +33,27 @@ public class Entrega {
         return cliente;
     }
 
-    public Carga getCarga() {
-        return carga;
-    }
-
     public Motorista getMotorista() {
         return motorista;
+    }
+
+    public Carga getCarga() {
+        return carga;
     }
 
     public LocalDateTime getDataHorario() {
         return dataHorario;
     }
+    
+    public double getDistanciaKm() {
+        return distanciaKm;
+    }
 
     @Override
     public String toString() {
-        return "Entrega para " + cliente.getNome() + 
-               " | Motorista: " + motorista.getNome() + 
-               " | Data: " + dataHorario + 
-               " | Valor: R$ " + String.format("%.2f", valorFrete);
+        return "Entrega: " + cliente.getNome() + 
+               " | Mot: " + motorista.getNome() + 
+               " | Dist: " + distanciaKm + "km" +
+               " | R$ " + String.format("%.2f", valorFrete);
     }
 }
