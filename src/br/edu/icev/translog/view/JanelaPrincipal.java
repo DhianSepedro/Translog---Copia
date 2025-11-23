@@ -29,7 +29,7 @@ public class JanelaPrincipal extends JFrame {
         super("Sistema Translog - Gestão Logística");
         setSize(950, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Centraliza na tela
+        setLocationRelativeTo(null); 
 
         //inicializa os dados e serviçoos
         inicializarSistema();

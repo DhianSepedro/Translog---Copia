@@ -14,7 +14,7 @@ public class PanelEntrega extends JPanel {
 
     private JanelaPrincipal janela;
     
-    // Componentes da Tela
+    //componentes da tela
     private JComboBox<String> cbClientes;
     private JComboBox<String> cbMotoristas;
     private JTextField txtPeso;
@@ -29,10 +29,10 @@ public class PanelEntrega extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
-        // --- PAINEL DE FORMULÁRIO (GRID) ---
+        //painel formulario
         JPanel form = new JPanel(new GridLayout(0, 2, 5, 5));
         
-        // Configuração dos Combos
+        //componentes do formulario
         cbClientes = new JComboBox<>();
         cbMotoristas = new JComboBox<>();
         
@@ -43,7 +43,7 @@ public class PanelEntrega extends JPanel {
         txtPeso = new JTextField("0");
         txtDistancia = new JTextField("0");
         
-        // Combo de Tipo de Carga (Bloqueado para edição manual)
+        //componentes da carga, leitura
         cbTipoCarga = new JComboBox<>(TipoCarga.values());
         cbTipoCarga.setEnabled(false); 
         cbTipoCarga.setRenderer(new DefaultListCellRenderer() {
@@ -57,7 +57,7 @@ public class PanelEntrega extends JPanel {
 
         chkEspecial = new JCheckBox("Carga Frágil/Perigosa (+40%)");
 
-        // Configuração da Máscara de Data (dd/MM/yyyy HH:mm)
+        //configura campo data/hora
         try {
             MaskFormatter mascaraData = new MaskFormatter("##/##/#### ##:##");
             mascaraData.setPlaceholderCharacter('_');
@@ -65,24 +65,23 @@ public class PanelEntrega extends JPanel {
         } catch (Exception e) {
             txtDataEntrega = new JFormattedTextField();
         }
-        // Preenche com a data/hora atual
+        //preenche com a data e hora atual por padrao
         txtDataEntrega.setValue(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
 
-        // --- EVENTOS DE CÁLCULO AUTOMÁTICO ---
-        // Quando sair do campo de peso, define o tipo de carga
+        //classifica automaticamente a carga
         txtPeso.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) { classificarCargaPeloPeso(); }
         });
 
-        // Recalcula valor se mudar cliente ou checkbox
+        //recalcula o valor ao mudar cliente ou adicionais
         cbClientes.addActionListener(e -> tentarCalcular());
         chkEspecial.addActionListener(e -> tentarCalcular());
 
-        // --- ADICIONA COMPONENTES AO LAYOUT ---
+        //montagem do formulario
         form.add(new JLabel("Cliente:")); form.add(cbClientes);
         form.add(new JLabel("Motorista:")); form.add(cbMotoristas);
-        form.add(new JLabel("")); form.add(btnAtualizarListas); // Espaço vazio + Botão
+        form.add(new JLabel("")); form.add(btnAtualizarListas); 
         
         form.add(new JLabel("DIGITE O PESO (kg):")); form.add(txtPeso);
         form.add(new JLabel("Distância (km):")); form.add(txtDistancia);
@@ -92,14 +91,14 @@ public class PanelEntrega extends JPanel {
         
         form.add(new JLabel("Data da Entrega (Dia/Mês/Ano Hora:Min):")); form.add(txtDataEntrega);
 
-        // --- PAINEL DE BOTÕES (INFERIOR) ---
+        //botoes
         JPanel panelBotoes = new JPanel(new FlowLayout());
         
         JButton btnCalcular = new JButton("VERIFICAR VALOR");
         btnCalcular.setBackground(new Color(230, 230, 250));
         
         JButton btnAgendar = new JButton("CONFIRMAR ENTREGA");
-        btnAgendar.setBackground(new Color(144, 238, 144)); // Verde Claro
+        btnAgendar.setBackground(new Color(144, 238, 144)); //verde claro
         btnAgendar.setFont(new Font("Arial", Font.BOLD, 12));
 
         lblValorCalculado = new JLabel("Valor: R$ 0.00");
@@ -110,32 +109,31 @@ public class PanelEntrega extends JPanel {
         btnAgendar.addActionListener(e -> agendar());
 
         panelBotoes.add(btnCalcular);
-        panelBotoes.add(Box.createHorizontalStrut(20)); // Espaçamento
+        panelBotoes.add(Box.createHorizontalStrut(20)); 
         panelBotoes.add(lblValorCalculado);
         panelBotoes.add(Box.createHorizontalStrut(20));
         panelBotoes.add(btnAgendar);
 
-        // Montagem Final
+        //montagem do painel principal
         add(new JLabel("Solicitação de Frete (Regra: Bloqueio de 1h a cada 100km)"), BorderLayout.NORTH);
         add(form, BorderLayout.CENTER);
         add(panelBotoes, BorderLayout.SOUTH);
         
-        atualizarCombos(); // Carrega a lista na primeira vez
+        atualizarCombos(); //carrega listas iniciais
     }
 
-    // --- LÓGICA AUXILIAR ---
-
+    //classifica a carga automaticamente pelo peso
     private void classificarCargaPeloPeso() {
         try {
             String textoPeso = txtPeso.getText().replace(",", ".");
             if (textoPeso.isEmpty()) return;
             double peso = Double.parseDouble(textoPeso);
             
-            if (peso <= 10) cbTipoCarga.setSelectedItem(TipoCarga.LEVE);
-            else if (peso <= 100) cbTipoCarga.setSelectedItem(TipoCarga.MEDIA);
+            if (peso <= 150) cbTipoCarga.setSelectedItem(TipoCarga.LEVE);
+            else if (peso <= 500) cbTipoCarga.setSelectedItem(TipoCarga.MEDIA);
             else cbTipoCarga.setSelectedItem(TipoCarga.PESADA);
             
-            tentarCalcular(); // Já tenta atualizar o preço
+            tentarCalcular(); //tenta atualizar o valor
         } catch (NumberFormatException e) { }
     }
 
