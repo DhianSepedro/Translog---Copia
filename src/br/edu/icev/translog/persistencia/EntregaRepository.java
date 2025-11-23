@@ -13,7 +13,6 @@ public class EntregaRepository {
     //salva tudo em csv
     public void salvarTudo(List<Entrega> listaDeEntregas) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARQUIVO_CSV))) {
-            // Cabeçalho
             writer.write("DOC_CLIENTE;CNH_MOTORISTA;DATA;PESO;TIPO;ESPECIAL;VALOR;DISTANCIA");
             writer.newLine();
 
@@ -82,8 +81,8 @@ public class EntregaRepository {
 
                 //recria a entrega se achou os dois
                 if (clienteEncontrado != null && motoristaEncontrado != null) {
-                    LocalDateTime data = LocalDateTime.parse(dataStr); // O Java lê o formato ISO nativamente
-                    Carga carga = new Carga(peso, tipo, especial); // O '0' é aquele valorDeclarado
+                    LocalDateTime data = LocalDateTime.parse(dataStr); 
+                    Carga carga = new Carga(peso, tipo, especial); 
                     
                     Entrega entregaRecuperada = new Entrega(clienteEncontrado, motoristaEncontrado, carga, data, distancia);
                     entregaRecuperada.setValorFrete(valor);

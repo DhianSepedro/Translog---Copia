@@ -13,38 +13,38 @@ public class MenuConsole {
 
     private Scanner scanner;
     
-    // Serviços
+    //servicos
     private CalculadoraFrete calculadora;
     private Agendamento agendamentoService;
     private NotaFiscal nfService;
     
-    // Repositórios
+    //persistencia de arquivos
     private EntregaRepository entregaRepo;
     private ClienteRepository clienteRepo;
     private MotoristaRepository motoristaRepo;
 
-    // Listas em Memória
+    //dados carregados
     private List<Cliente> clientesCadastrados;
     private List<Motorista> motoristasCadastrados;
 
     public MenuConsole() {
         this.scanner = new Scanner(System.in);
         
-        // Inicializa Repositórios
+        //inicia os arquivos de persistencia
         this.entregaRepo = new EntregaRepository();
         this.clienteRepo = new ClienteRepository();
         this.motoristaRepo = new MotoristaRepository();
         
-        // CARREGA DADOS DO DISCO (Igual à Janela Principal)
+        //carrega dados salvos
         this.clientesCadastrados = clienteRepo.carregar();
         this.motoristasCadastrados = motoristaRepo.carregar();
         
-        // Inicializa Serviços
+        //inicia servicos
         this.calculadora = new CalculadoraFrete();
         this.agendamentoService = new Agendamento();
         this.nfService = new NotaFiscal();
         
-        // Recupera histórico de entregas
+        //recarrega entregas salvas
         List<Entrega> historico = entregaRepo.carregar(clientesCadastrados, motoristasCadastrados);
         for(Entrega e : historico) {
             try { agendamentoService.listarEntregas().add(e); } catch(Exception ex){}
@@ -97,7 +97,7 @@ public class MenuConsole {
         System.out.print("Documento (CPF/CNPJ): "); 
         String doc = scanner.nextLine();
         
-        // VALIDAÇÃO NO CONSOLE
+        //validações
         if (tipo == 1 && !Validador.isCNPJ(doc)) {
             System.out.println("ERRO: CNPJ Inválido!"); return;
         }
@@ -132,7 +132,7 @@ public class MenuConsole {
             return;
         }
         
-        // Seleção simplificada
+        //seleção de cliente e motorista
         for(int i=0; i<clientesCadastrados.size(); i++) 
             System.out.println(i + " - " + clientesCadastrados.get(i).getNome());
         System.out.print("Index Cliente: ");
@@ -152,7 +152,7 @@ public class MenuConsole {
         System.out.print("Distância (km): "); 
         double dist = Double.parseDouble(scanner.nextLine());
         
-        // Classificação Automática (Lógica do Swing trazida pra cá)
+        //classificaçao automatica de carga
         TipoCarga tipo;
         if (peso <= 10) tipo = TipoCarga.LEVE;
         else if (peso <= 100) tipo = TipoCarga.MEDIA;
@@ -192,11 +192,11 @@ public class MenuConsole {
         else for (Entrega e : lista) System.out.println(e);
     }
     
-    private void preCarregarDados() {
-        // Se não carregou nada do arquivo, cria um dummy
-        if(clientesCadastrados.isEmpty())
-            clientesCadastrados.add(new ClienteEmpresarial("Loja Teste", "0001", "9999"));
-        if(motoristasCadastrados.isEmpty())
-            motoristasCadastrados.add(new Motorista("João Piloto", "12345678901"));
-    }
+    //metodo para pre-carregar dados de teste, opcional
+    // private void preCarregarDados() {
+    //     if(clientesCadastrados.isEmpty())
+    //         clientesCadastrados.add(new ClienteEmpresarial("Loja Teste", "0001", "9999"));
+    //     if(motoristasCadastrados.isEmpty())
+    //         motoristasCadastrados.add(new Motorista("João Piloto", "12345678901"));
+    // }
 }
